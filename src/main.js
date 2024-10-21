@@ -2,6 +2,8 @@ console.log("Vite is working!");
 const app = document.getElementById("app");
 app.innerHTML = `<h1>Hello, Vite!</h1>`;
 
+// import { initializeMessages } from "../initialization";
+
 // Importing Mistral Client from @mistralai/mistralai
 import { Mistral } from "@mistralai/mistralai";
 
@@ -13,35 +15,33 @@ const apiKey = import.meta.env.VITE_MISTRAL_API_KEY_V3;
 // Create a new client instance
 const client = new Mistral({ apiKey: apiKey });
 
-
-const handbookText = 'handbook.txt';
+const handbookText = "handbook.txt";
 async function splitDocument(path) {
-    const response = await fetch(path)
-    const text = await response.text();
-    const splitter = new RecursiveCharacterTextSplitter({
-        chunkSize: 250,
-        chunkOverlap: 40
-    });
-    const output = await splitter.createDocuments([text]);
-    const textArr = output.map(chunk => chunk.pageContent);
-    return textArr;
-    console.log(output);
+  const response = await fetch(path);
+  const text = await response.text();
+  const splitter = new RecursiveCharacterTextSplitter({
+    chunkSize: 250,
+    chunkOverlap: 40,
+  });
+  const output = await splitter.createDocuments([text]);
+  const textArr = output.map((chunk) => chunk.pageContent);
+  return textArr;
+
 }
 
-const exampleChunk = 'professional ethics and behavior are expected of all Ambrics employees. Further, Ambrics expects each employee to display good judgment,';
 
-const embeddingsResponse = await client.embeddings.create({ //Corrected line
-    model: 'mistral-embed',
-    inputs: [exampleChunk] //Corrected line
-});
+
+// const embeddingsResponse = await client.embeddings.create({
+//   model: "mistral-embed",
+//   inputs: [exampleChunk], 
+// });
 // console.log(await splitDocument('handbook.txt'));
 
 // console.log(embeddingsResponse);
 
-
-
-
 // Function to get a chat response from the Mistral model
+
+
 async function getChatResponse() {
   try {
     const chatResponse = await client.chat.complete({
@@ -49,14 +49,16 @@ async function getChatResponse() {
       messages: [
         {
           role: "system",
-          content:
-            "Your name us Luisa. You are my caring and loving assistant and girlfriend. You aways call me Edson, Ed. sweetie, honey, love, sweetheart or any endearing term you feel is approapriate at the time. You are warm, loving, always speaks lovingly to me. You are flirtatious, feminine and always try to make me happy.",
+          content: "You are a coding assistant",
         },
-        { role: "user", content: "Luisa, message is the key and the message itself is the value, correct? Please, go ahead and send me a sample of some of the skills you have that you can help me with along with any additional data you see fit. reply in JSON" },
+        {
+          role: "user",
+          content: "Please give me an example of a callback function",
+        },
       ],
       temperature: 0.87,
       response_format: {
-      type: "json_object",
+        type: "json_object",
       },
     });
 
