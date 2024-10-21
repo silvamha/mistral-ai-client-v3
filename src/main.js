@@ -1,73 +1,52 @@
-console.log("Vite is working!");
-const app = document.getElementById("app");
-app.innerHTML = `<h1>Hello, Vite!</h1>`;
-
-// import { initializeMessages } from "../initialization";
-
-// Importing Mistral Client from @mistralai/mistralai
+// Import necessary modules
 import { Mistral } from "@mistralai/mistralai";
-
-// Import LangChain
 import { RecursiveCharacterTextSplitter } from "langchain/text_splitter";
+
 // Load the API key from environment variables
 const apiKey = import.meta.env.VITE_MISTRAL_API_KEY_V3;
 
-// Create a new client instance
+// Create a new Mistral client instance
 const client = new Mistral({ apiKey: apiKey });
 
-const handbookText = "handbook.txt";
+// Asynchronous function to split a document into chunks
 async function splitDocument(path) {
+  // Fetch the document from the specified path
   const response = await fetch(path);
+  // Extract the text content from the response
   const text = await response.text();
+  // Create a new RecursiveCharacterTextSplitter instance with specified chunk size and overlap
   const splitter = new RecursiveCharacterTextSplitter({
     chunkSize: 250,
     chunkOverlap: 40,
   });
+  // Split the text into documents using the splitter
   const output = await splitter.createDocuments([text]);
+  // Extract the text content from each document
   const textArr = output.map((chunk) => chunk.pageContent);
+  // Return the array of text chunks
   return textArr;
-
 }
 
+// Call splitDocument to get chunks from handbook.txt
+const handbookChunks = await splitDocument("handbook.txt");
 
-
-// const embeddingsResponse = await client.embeddings.create({
-//   model: "mistral-embed",
-//   inputs: [exampleChunk], 
-// });
-// console.log(await splitDocument('handbook.txt'));
-
-// console.log(embeddingsResponse);
-
-// Function to get a chat response from the Mistral model
-
-
-async function getChatResponse() {
+// Asynchronous function to create embeddings from text chunks
+async function createEmbeddings(chunks) {
   try {
-    const chatResponse = await client.chat.complete({
-      model: "pixtral-12b-2409",
-      messages: [
-        {
-          role: "system",
-          content: "You are a coding assistant",
-        },
-        {
-          role: "user",
-          content: "Please give me an example of a callback function",
-        },
-      ],
-      temperature: 0.87,
-      response_format: {
-        type: "json_object",
-      },
+    // Create embeddings using the Mistral client with corrected parameter name 'inputs'
+    const embeddings = await client.embeddings.create({
+      model: "mistral-embed",
+      inputs: chunks, // Corrected parameter name
     });
-
-    // Log the response to the console
-    // console.log("Chat:", chatResponse.choices[0].message.content);
+    // Log a specific embedding to the console for verification
+    console.log(embeddings.data[12].embedding);
   } catch (error) {
-    console.error("Error fetching response:", error);
+    console.error("Error creating embeddings:", error);
   }
 }
 
-// Call the function to fetch a chat response
-// getChatResponse();
+// Call createEmbeddings to generate embeddings from handbookChunks
+// createEmbeddings(handbookChunks);
+
+// Placeholder for other functions (if any)
+// ...
