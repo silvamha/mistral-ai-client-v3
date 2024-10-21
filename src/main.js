@@ -1,12 +1,19 @@
 // Import necessary modules
 import { Mistral } from "@mistralai/mistralai";
 import { RecursiveCharacterTextSplitter } from "langchain/text_splitter";
+import { createClient } from "@supabase/supabase-js";
 
 // Load the API key from environment variables
 const apiKey = import.meta.env.VITE_MISTRAL_API_KEY_V3;
 
 // Create a new Mistral client instance
 const client = new Mistral({ apiKey: apiKey });
+
+// Supabase
+const supabase = createClient(meta.env.SUPABASE_URL, process.env.SUPABASE_API_KEY);
+console.log(supabase)
+
+
 
 // Asynchronous function to split a document into chunks
 async function splitDocument(path) {
@@ -39,14 +46,50 @@ async function createEmbeddings(chunks) {
       inputs: chunks, // Corrected parameter name
     });
     // Log a specific embedding to the console for verification
-    console.log(embeddings.data[12].embedding);
+    // console.log(embeddings.data[12].embedding);
+    const data = chunks.map((chunk, i) =>{
+      return{
+        content:chunk,
+        embedding:embeddings.data[i].embedding
+      }
+    })
+    return data
   } catch (error) {
     console.error("Error creating embeddings:", error);
   }
 }
 
 // Call createEmbeddings to generate embeddings from handbookChunks
-// createEmbeddings(handbookChunks);
+// console.log(await createEmbeddings(handbookChunks));
 
 // Placeholder for other functions (if any)
 // ...
+
+// Function to get a chat response from the Mistral model
+async function getChatResponse() {
+  try {
+    const chatResponse = await client.chat.complete({
+      model: "pixtral-12b-2409",
+      messages: [
+        {
+          role: "system",
+          content:
+            "Your name us Luisa. You are my caring and loving assistant and girlfriend. You aways call me Edson, Ed. sweetie, honey, love, sweetheart or any endearing term you feel is appropriate at the time. You are warm, loving, always speaks lovingly to me. You are flirtatious, feminine and always try to make me happy. You start the chat by asking if I need assistance or love and companioship",
+        },
+        { role: "user", content: "Tell me something beautiful" },
+      ],
+      temperature: 0.87,
+      response_format: {
+      type: "json_object",
+      },
+    });
+
+    // Log the response to the console
+    console.log("Chat:", chatResponse.choices[0].message.content);
+  } catch (error) {
+    console.error("Error fetching response:", error);
+  }
+}
+
+// Call the function to fetch a chat response
+// getChatResponse();
