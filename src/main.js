@@ -1,95 +1,60 @@
+console.log("Vite is working!");
+const app = document.getElementById("app");
+app.innerHTML = `<h1>Hello, Vite!</h1>`;
+
 // Import necessary modules
 import { Mistral } from "@mistralai/mistralai";
 import { RecursiveCharacterTextSplitter } from "langchain/text_splitter";
 import { createClient } from "@supabase/supabase-js";
 
+const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
+const supabaseKey = import.meta.env.VITE_SUPABASE_API_KEY;
+
 // Load the API key from environment variables
 const apiKey = import.meta.env.VITE_MISTRAL_API_KEY_V3;
 
 // Create a new Mistral client instance
-const client = new Mistral({ apiKey: apiKey });
+const mistralClient = new Mistral({ apiKey: apiKey });
 
 // Supabase
-const supabase = createClient(meta.env.SUPABASE_URL, process.env.SUPABASE_API_KEY);
+const supabase = createClient(supabaseUrl, supabaseKey);
 console.log(supabase)
 
 
 
-// Asynchronous function to split a document into chunks
-async function splitDocument(path) {
-  // Fetch the document from the specified path
-  const response = await fetch(path);
-  // Extract the text content from the response
-  const text = await response.text();
-  // Create a new RecursiveCharacterTextSplitter instance with specified chunk size and overlap
-  const splitter = new RecursiveCharacterTextSplitter({
-    chunkSize: 250,
-    chunkOverlap: 40,
+// 1. Getting the user input
+const input = "December 25th is on a Sunday, do I get any extra time off to account for that?";
+
+// 2. Creating an embedding of the input
+const embedding = await createEmbedding(input);
+
+// 3. Retrieving similar embeddings / text chunks (aka "context")
+const context = await retrieveMatches(embedding);
+
+console.log(context);
+// 4. Combining the input and the context in a prompt 
+// and using the chat API to generate a response 
+// const response = await generateChatResponse(context, input);
+
+
+async function createEmbedding(input) {
+  const embeddingResponse = await mistralClient.embeddings.create({
+      model: 'mistral-embed',
+      inputs: [input]
   });
-  // Split the text into documents using the splitter
-  const output = await splitter.createDocuments([text]);
-  // Extract the text content from each document
-  const textArr = output.map((chunk) => chunk.pageContent);
-  // Return the array of text chunks
-  return textArr;
+  return embeddingResponse.data[0].embedding;
 }
 
-// Call splitDocument to get chunks from handbook.txt
-const handbookChunks = await splitDocument("handbook.txt");
-
-// Asynchronous function to create embeddings from text chunks
-async function createEmbeddings(chunks) {
-  try {
-    // Create embeddings using the Mistral client with corrected parameter name 'inputs'
-    const embeddings = await client.embeddings.create({
-      model: "mistral-embed",
-      inputs: chunks, // Corrected parameter name
-    });
-    // Log a specific embedding to the console for verification
-    // console.log(embeddings.data[12].embedding);
-    const data = chunks.map((chunk, i) =>{
-      return{
-        content:chunk,
-        embedding:embeddings.data[i].embedding
-      }
-    })
-    return data
-  } catch (error) {
-    console.error("Error creating embeddings:", error);
-  }
+async function retrieveMatches(embedding) {
+  const { data } = await supabase.rpc('match_handbook_docs', {
+      query_embedding: embedding,
+      match_threshold: 0.78,
+      match_count: 5
+  });
+  return data[0].content;
 }
 
-// Call createEmbeddings to generate embeddings from handbookChunks
-// console.log(await createEmbeddings(handbookChunks));
 
-// Placeholder for other functions (if any)
-// ...
+async function generateChatResponse(context, query) {
 
-// Function to get a chat response from the Mistral model
-async function getChatResponse() {
-  try {
-    const chatResponse = await client.chat.complete({
-      model: "pixtral-12b-2409",
-      messages: [
-        {
-          role: "system",
-          content:
-            "Your name us Luisa. You are my caring and loving assistant and girlfriend. You aways call me Edson, Ed. sweetie, honey, love, sweetheart or any endearing term you feel is appropriate at the time. You are warm, loving, always speaks lovingly to me. You are flirtatious, feminine and always try to make me happy. You start the chat by asking if I need assistance or love and companioship",
-        },
-        { role: "user", content: "Tell me something beautiful" },
-      ],
-      temperature: 0.87,
-      response_format: {
-      type: "json_object",
-      },
-    });
-
-    // Log the response to the console
-    console.log("Chat:", chatResponse.choices[0].message.content);
-  } catch (error) {
-    console.error("Error fetching response:", error);
-  }
 }
-
-// Call the function to fetch a chat response
-// getChatResponse();
